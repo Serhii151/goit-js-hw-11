@@ -8,12 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPage = 1;
   let currentSearchQuery = '';
   let totalHits = 0;
+  let totalPages = 0;
+  let searchQuery = ''; 
 
   loadMoreBtn.style.display = 'none';
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const searchQuery = e.target.elements.searchQuery.value.trim();
+    searchQuery = e.target.elements.searchQuery.value.trim(); 
     if (searchQuery) {
       currentSearchQuery = searchQuery;
       currentPage = 1;
@@ -25,7 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadMoreBtn.addEventListener('click', async () => {
     currentPage++;
-    await searchImages(currentSearchQuery, currentPage);
+    currentPage = Math.min(currentPage, totalPages);
+    try {
+      await searchImages(currentSearchQuery, currentPage); 
+    } catch (error) {
+      console.error(error);
+    }
   });
 
   async function searchImages(query, page) {
@@ -54,11 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         showLoadMoreButton(data.hits.length);
       }
+
+      totalPages = Math.ceil(totalHits / PER_PAGE); 
+
+      if (currentPage >= totalPages) {
+        loadMoreBtn.style.display = 'none'; 
+      } else {
+        loadMoreBtn.style.display = 'block'; 
+      }
     } catch (error) {
       console.error(error);
-      showNotification(
-        'An error occurred while fetching images. Please try again later.'
-      );
+      showNotification('An error occurred while fetching images. Please try again later.');
     }
   }
 
@@ -94,26 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const item = document.createElement('p');
     item.classList.add('info-item');
     item.innerHTML = `<b>${label}</b> <span>${value}</span>`;
-
-    
-    const textWidth = item.getBoundingClientRect().width;
-
-    
-    item.style.maxWidth = `${textWidth}px`;
-
     return item;
   }
 
-  function showLoadMoreButton(currentCount) {
-    if (currentCount >= totalHits) {
-      loadMoreBtn.style.display = 'none';
-      if (currentCount > 0) {
-        showNotification("We're sorry, but you've reached the end of search results.");
-      }
-    } else {
-      loadMoreBtn.style.display = 'flex';
-    }
+  function showLoadMoreButton(length) {
+  if (length < PER_PAGE) {
+    loadMoreBtn.style.display = 'none'; 
+  } else {
+    loadMoreBtn.style.display = 'block'; 
   }
+}
   
 
   function showNotification(message) {
